@@ -26,6 +26,13 @@ public class combatEnemy : MonoBehaviour
     private bool attacking;
     private bool hiting;
     private bool waitFor;
+    private bool playerIsDead;
+
+    [Header("WayPoint")]
+    public List<Transform> wayPoints = new List<Transform>();
+    public int currentPathIndex;
+    public float pathDistance;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -66,17 +73,34 @@ public class combatEnemy : MonoBehaviour
             }
             else
             {
-                agent.isStopped = true;
+                //agent.isStopped = true;
                 anim.SetBool("Walk Forward", false);
                 walking = false;
                 attacking = false;
+                MoveToWayPoint();
             }
         }
     }
 
+    void MoveToWayPoint()
+    {
+        if (wayPoints.Count > 0)
+        {
+            float distance = Vector3.Distance(wayPoints[currentPathIndex].position, transform.position);
+            agent.destination = wayPoints[currentPathIndex].position;
+
+            if(distance <= pathDistance)
+            {
+                currentPathIndex = Random.Range(0, wayPoints.Count);
+            }
+
+            anim.SetBool("Walk Forward", true);
+            walking = true;
+        }
+    }
     IEnumerator Attack()
     {
-        if (!waitFor && !hiting)
+        if (!waitFor && !hiting && !playerIsDead)
         {
             waitFor = true;
             attacking = true;
@@ -88,6 +112,15 @@ public class combatEnemy : MonoBehaviour
             //yield return new WaitForSeconds(1f);
             waitFor = false;
         }
+
+        if (playerIsDead)
+        {
+            anim.SetBool("Walk Forward", false);
+            anim.SetBool("Bite Attack", false);
+            walking = false;
+            attacking = false;
+            agent.isStopped = true;
+        }
     }
 
     void GetPlayer()
@@ -97,7 +130,8 @@ public class combatEnemy : MonoBehaviour
         {
             if (c.gameObject.CompareTag("Player"))
             {
-                Debug.Log("Bateu no player");
+                c.gameObject.GetComponent<player>().GetHit(attackDamage);
+                playerIsDead = c.gameObject.GetComponent<player>().isDead;
             }
         }
     }
